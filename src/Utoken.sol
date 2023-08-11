@@ -5,14 +5,30 @@ import "solmate/tokens/ERC20.sol";
 
 contract Utoken is ERC20 {
 
-    constructor() ERC20("Utokens", "uToken", 18){}
+    address public lendPool; // falta poner la direccion 
 
-    function mint(address to, uint256 amount) public {      
+    modifier onlyLendPool() {
+        require(msg.sender == address(lendPool),"caller must be lendPool");
+        _;
+    }
+
+    constructor() ERC20("Utokens", "uT", 18){}
+
+    // falta aplicar modifier onlyLendPool en mint() y burn()
+    function mint(address to, uint256 amount) public { 
+         require(amount > 0, "Invalid amount");   
         _mint(to, amount);
     }
 
-    function burn(address from, uint256 amount) public{      
-        _burn(from, amount);
+    function burn(
+        address uTokenOwner,
+        //address assetReceiver,
+        uint256 amount
+     ) public { 
+        require(amount > 0, "Invalid amount");  
+        // se queman los uTokens     
+        _burn(uTokenOwner, amount);
+        // se envia a assetReceiver el asset depositado en la LendPool
     }
 
 }
