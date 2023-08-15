@@ -6,7 +6,6 @@ import "../src/Utoken.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 contract UtokenTest is Test {
-
     Utoken public uToken;
     address public alice;
     address public bob;
@@ -14,10 +13,10 @@ contract UtokenTest is Test {
     function setUp() public {
         uToken = new Utoken();
         alice = makeAddr("alice");
-        bob = makeAddr("bob");   
+        bob = makeAddr("bob");
     }
 
-    function testMint() public {  
+    function testMint() public {
         uToken.mint(alice, 1 ether);
         assertEq(IERC20(address(uToken)).balanceOf(alice), 1 ether);
     }
@@ -28,5 +27,4 @@ contract UtokenTest is Test {
         uToken.burn(bob, 1 ether);
         assertEq(IERC20(address(uToken)).balanceOf(bob), 0);
     }
-
 }
