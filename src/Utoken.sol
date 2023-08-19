@@ -4,16 +4,8 @@ pragma solidity ^0.8.20;
 import "solmate/tokens/ERC20.sol";
 
 contract Utoken is ERC20 {
-    address public lendPool; // falta poner la direccion
+    constructor() ERC20("Utokens", "UT", 18) {}
 
-    modifier onlyLendPool() {
-        require(msg.sender == address(lendPool), "caller must be lendPool");
-        _;
-    }
-
-    constructor() ERC20("Utokens", "UT", 8) {}
-
-    // falta aplicar modifier onlyLendPool en mint() y burn()
     function mint(address to, uint256 amount) public {
         require(amount > 0, "Invalid mint amount");
         _mint(to, amount);

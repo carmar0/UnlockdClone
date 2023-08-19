@@ -20,9 +20,10 @@ contract LendPoolTest is Test {
     function setUp() public {
         // Mainnet fork is created and selected to be used from next line
         vm.createSelectFork(MAINNET_RPC_URL);
-
-        lendpool = new LendPool();
+        // contracts deployment
         utoken = new Utoken();
+        lendpool = new LendPool(address(utoken));
+
         alice = makeAddr("alice");
     }
 
@@ -32,10 +33,11 @@ contract LendPoolTest is Test {
         assertEq(IERC20(wbtc).balanceOf(address(alice)), 10 * 1e8);
 
         vm.startPrank(alice);
-        // alice makes a deposit of 2 WBTC at LendPool.sol
+        // alice makes a deposit of 2 WBTC
         IERC20(wbtc).approve(address(lendpool), 2 * 1e8);
         lendpool.deposit(wbtc, 2 * 1e8, address(alice));
         assertEq(IERC20(wbtc).balanceOf(address(alice)), 8 * 1e8);
-        assertEq(IERC20(wbtc).balanceOf(address(lendpool)), 2 * 1e8);
+        assertEq(IERC20(wbtc).balanceOf(address(utoken)), 2 * 1e8);
+        assertEq(IERC20(address(utoken)).balanceOf(address(alice)), 2 * 1e8);
     }
 }
