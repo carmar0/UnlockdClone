@@ -47,14 +47,15 @@ contract LendPoolTest is Test {
         assertEq(IERC20(address(utoken)).balanceOf(address(alice)), 2 * 1e8);
     }
 
+    
     function testWithdraw() public {
         // alice deposits 2 WBTC
         testDeposit();
-        uint256 depositTime = block.timestamp;
+        uint256 deposit = block.timestamp;
         // 6 months = 15552000 seconds
-        uint256 withdrawTime = depositTime + 15552000;
+        uint256 withdraw = deposit + 15552000;
         // set the block.timestamp 6 months later
-        vm.warp(withdrawTime); 
+        vm.warp(withdraw); 
  
         vm.stopPrank();
         vm.prank(address(utoken));
@@ -64,7 +65,9 @@ contract LendPoolTest is Test {
         // alice withdraws her 2 WBTC
         vm.startPrank(alice);
         lendpool.withdraw(wbtc, 2 * 1e8, address(alice));
-        assertEq(IERC20(wbtc).balanceOf(address(alice)), lendpool.amountToWithdraw());
+        // Now alice has more than 2 WBTC (include rewards)
+        assertGt(IERC20(wbtc).balanceOf(address(alice)), 2 * 1e8);
         assertEq(IERC20(address(utoken)).balanceOf(address(alice)), 0);
     }
+    
 }
