@@ -11,14 +11,8 @@ contract Utoken is ERC20 {
         _mint(to, amount);
     }
 
-    function burn(
-        address uTokenOwner,
-        //address assetReceiver,
-        uint256 amount
-    ) public {
+    function burn(address from, uint256 amount) public {
         require(amount > 0, "Invalid burn amount");
-        // uTokens are burnt
-        _burn(uTokenOwner, amount);
-        // return to assetReceiver the asset deposited at LendPool
+        _burn(from, amount);
     }
 }

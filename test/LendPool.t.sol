@@ -25,19 +25,46 @@ contract LendPoolTest is Test {
         lendpool = new LendPool(address(utoken));
 
         alice = makeAddr("alice");
+         
+        // deal 50 WBTC to LendPool.sol (WBTC has 8 decimals)
+        deal(wbtc, address(lendpool), 50 * 1e8);
+        assertEq(IERC20(wbtc).balanceOf(address(lendpool)), 50 * 1e8);
     }
 
     function testDeposit() public {
-        // give 10 WBTC to alice (WBTC has 8 decimals)
-        deal(wbtc, address(alice), 10 * 1e8);
-        assertEq(IERC20(wbtc).balanceOf(address(alice)), 10 * 1e8);
+        // deal 2 WBTC to alice 
+        deal(wbtc, address(alice), 2 * 1e8);
+        assertEq(IERC20(wbtc).balanceOf(address(alice)), 2 * 1e8);
 
         vm.startPrank(alice);
-        // alice makes a deposit of 2 WBTC
+        // alice makes a deposit of 2 WBTC. First she must approve the
+        // LendPool contract to move her funds
         IERC20(wbtc).approve(address(lendpool), 2 * 1e8);
         lendpool.deposit(wbtc, 2 * 1e8, address(alice));
-        assertEq(IERC20(wbtc).balanceOf(address(alice)), 8 * 1e8);
+        assertEq(IERC20(wbtc).balanceOf(address(alice)), 0);
         assertEq(IERC20(wbtc).balanceOf(address(utoken)), 2 * 1e8);
+        // alice receives 2 Utokens
         assertEq(IERC20(address(utoken)).balanceOf(address(alice)), 2 * 1e8);
+    }
+
+    function testWithdraw() public {
+        // alice deposits 2 WBTC
+        testDeposit();
+        uint256 depositTime = block.timestamp;
+        // 6 months = 15552000 seconds
+        uint256 withdrawTime = depositTime + 15552000;
+        // set the block.timestamp 6 months later
+        vm.warp(withdrawTime); 
+ 
+        vm.stopPrank();
+        vm.prank(address(utoken));
+        // Utoken.sol approves LendPool.sol to move 2 WBTC
+        IERC20(wbtc).approve(address(lendpool), 2 * 1e8);
+                      
+        // alice withdraws her 2 WBTC
+        vm.startPrank(alice);
+        lendpool.withdraw(wbtc, 2 * 1e8, address(alice));
+        assertEq(IERC20(wbtc).balanceOf(address(alice)), lendpool.amountToWithdraw());
+        assertEq(IERC20(address(utoken)).balanceOf(address(alice)), 0);
     }
 }
