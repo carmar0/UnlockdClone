@@ -117,8 +117,13 @@ contract LendPool {
 
     }
 
-    function getNftPrice(address nftAddress, uint256 nftTokenId)
-        public returns(uint256) {
+    /**
+    * @dev Allows to get an estimation of the NFT price that is used as loan collateral by the
+        user
+    * @param nftAddress The Chainlink's aggregator contract address for the NFT collection
+        whose floor price is returned
+    **/
+    function getNftPrice(address nftAddress) public view returns(uint256) {
        
         ( , int256 answer, , , ) = AggregatorV3Interface(nftAddress).latestRoundData();
         return uint256(answer);

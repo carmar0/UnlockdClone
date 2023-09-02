@@ -14,9 +14,15 @@ contract LendPoolTest is Test {
     LendPool public lendpool;
     Utoken public utoken;
     address public alice;
+
     // WBTC contract address deployed on Mainnet
     address public wbtc = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
-    address public bayc = 0x352f2Bc3039429fC2fe62004a1575aE74001CfcE;
+
+    // Chainlink's aggregator contract addresses for the next NFT floor 
+    // prices on Mainnet: Azuki, Bored Ape Yacht Club and CryptoPunks
+    address azuki = 0xA8B9A447C73191744D5B79BcE864F343455E1150;
+    address bayc = 0x352f2Bc3039429fC2fe62004a1575aE74001CfcE;
+    address cryptopunks = 0x01B6710B01cF3dd8Ae64243097d91aFb03728Fdd;
 
     function setUp() public {
         // Mainnet fork is created and selected to be used from next line
@@ -71,10 +77,18 @@ contract LendPoolTest is Test {
         assertEq(IERC20(address(utoken)).balanceOf(address(alice)), 0);
     }
 
-    function testGetNftPrice() public {
-        // ask for the price of Bored Ape Yacht CLub NFT number 6373
-        uint256 price = lendpool.getNftPrice(bayc, 6373);
-        console.log(price);
+    function testGetNftPrice() public view {
+        // ask for Azuki NFT floor price
+        uint256 price1 = lendpool.getNftPrice(azuki);
+        console.log(price1);
+
+        // ask for Bored Ape Yacht CLub NFT floor price
+        uint256 price2 = lendpool.getNftPrice(bayc);
+        console.log(price2);
+
+        // ask for CryptoPunks NFT floor price
+        uint256 price3 = lendpool.getNftPrice(cryptopunks);
+        console.log(price3);
     }
     
 }
