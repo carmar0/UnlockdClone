@@ -2,10 +2,16 @@
 pragma solidity ^0.8.20;
 
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import "chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 interface IUtoken {
     function mint(address to, uint256 amount) external;
     function burn(address from, uint256 amount) external; 
+}
+
+interface IERC721 {
+    function ownerOf(uint256 tokenId) external view returns(address);
+    function safeTransferFrom(address from, address to, uint256 tokenId) external;
 }
 
 contract LendPool {
@@ -16,6 +22,8 @@ contract LendPool {
     error NullAmount();
     error InvalidAddress();
     error NotEnoughBalance();
+    error NotNftOwner();
+    error onlyOneLoan();
 
     address public immutable uToken;
 
@@ -24,7 +32,21 @@ contract LendPool {
         uint256 lastDeposit;
     }
 
-    mapping(address => mapping(address => DepositData)) public deposits;
+    struct Loan {
+        uint256 amount;
+        uint256 nftTokenId;
+        bool active; // true when it is not repaid 
+    }
+
+    mapping(address => mapping(address => DepositData)) deposits;
+    mapping(address => Loan) loans;
+
+    modifier onlyNftOwner(address nftAddress, uint256 tokenId) {
+        if (IERC721(nftAddress).ownerOf(tokenId) != msg.sender) {
+            revert NotNftOwner();
+        }
+        _;
+    }
 
     constructor(address _utoken) {
         uToken = _utoken;
@@ -78,4 +100,32 @@ contract LendPool {
         return rewards;
     }
     
+    function borrow(
+        address asset,
+        uint256 amount,
+        address nftAsset,
+        uint256 nftTokenId,
+        address onBehalfOf) public onlyNftOwner(nftAsset, nftTokenId) {
+
+        Loan storage loan = loans[msg.sender];
+
+        // only 1 loan per user
+        if (loan.active) revert onlyOneLoan();
+
+        // query Nft price on Chainlink
+
+
+    }
+
+    function getNftPrice(address nftAddress, uint256 nftTokenId)
+        public returns(uint256) {
+       
+        ( , int256 answer, , , ) = AggregatorV3Interface(nftAddress).latestRoundData();
+        return uint256(answer);
+    }
+
+
+               
+
+        
 }

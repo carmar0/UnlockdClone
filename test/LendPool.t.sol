@@ -16,6 +16,7 @@ contract LendPoolTest is Test {
     address public alice;
     // WBTC contract address deployed on Mainnet
     address public wbtc = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
+    address public bayc = 0x352f2Bc3039429fC2fe62004a1575aE74001CfcE;
 
     function setUp() public {
         // Mainnet fork is created and selected to be used from next line
@@ -68,6 +69,12 @@ contract LendPoolTest is Test {
         // Now alice has more than 2 WBTC (include rewards)
         assertGt(IERC20(wbtc).balanceOf(address(alice)), 2 * 1e8);
         assertEq(IERC20(address(utoken)).balanceOf(address(alice)), 0);
+    }
+
+    function testGetNftPrice() public {
+        // ask for the price of Bored Ape Yacht CLub NFT number 6373
+        uint256 price = lendpool.getNftPrice(bayc, 6373);
+        console.log(price);
     }
     
 }
