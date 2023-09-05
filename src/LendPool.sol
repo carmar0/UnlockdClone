@@ -113,6 +113,11 @@ contract LendPool {
         if (loan.active) revert onlyOneLoan();
 
         // query Nft price on Chainlink
+        uint256 price = getNftPrice(nftAsset);
+
+        if (amount > price) revert NotEnoughBalance();
+
+        // transfer the user NFT to Unft.sol
 
 
     }
