@@ -23,6 +23,11 @@ contract UnftTest is Test {
         assertEq(IERC721(uNFT).ownerOf(1), address(alice));
     }
 
+    function testTokenURI() public {
+        testMint();
+        assertEq(uNFT.tokenURI(1), "");
+    }
+
     function testOnERC721Received() public {
         testMint();
         // Alice sends her NFT to Unft contract
@@ -40,4 +45,5 @@ contract UnftTest is Test {
         assertEq(IERC721(uNFT).balanceOf(address(alice)), 0);
         assertEq(IERC721(uNFT).balanceOf(address(uNFT)), 0);
     }
+
 }
