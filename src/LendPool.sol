@@ -77,14 +77,14 @@ contract LendPool {
         as the receipt of their deposit.
      * @param asset Address of the asset to be deposited
      * @param amount Amount of tokens to deposit
-     * @param onBehalfOf Address who will receive the tokens
+     * @param onBehalfOf Address who will receive the uTokens
      **/
     function deposit(address asset, uint256 amount, address onBehalfOf) public {
         if (amount == 0) revert NullAmount();
         if (onBehalfOf == address(0)) revert InvalidAddress();
 
         // Update the user deposit data
-        DepositData storage assetDeposit = deposits[msg.sender][asset];
+        DepositData storage assetDeposit = deposits[onBehalfOf][asset];
         assetDeposit.balance += amount;
         assetDeposit.lastDeposit = block.timestamp;
 
@@ -215,7 +215,7 @@ contract LendPool {
      * @dev Allows to repay a borrowed 'amount'. The 'nftTokenId' is returned 
         to the user and the uNFT is burned.
      * @param asset Address of the token asset to be repaid
-     * @param amount Amount to be repaid
+     * @param amount Amount to be repaid (include a small fee of 1%)
     **/
     function repay(address asset, uint256 amount) public {
         
@@ -223,8 +223,10 @@ contract LendPool {
 
         if (!loan.active) revert NoLoan();
 
-        // User must repay the whole loan
-        if (amount < loan.amount) revert NotEnoughBalance();
+        // User must repay the whole loan plus 1% fee
+        uint256 fee = loan.amount / 100;
+        uint256 amountToRepay = loan.amount + fee;
+        if (amount < amountToRepay) revert NotEnoughBalance();
 
         // Transfer the tokens to LendPool contract. Firstly user must approve
         // this contract to move his funds
