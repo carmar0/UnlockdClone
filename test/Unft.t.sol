@@ -45,5 +45,4 @@ contract UnftTest is Test {
         assertEq(IERC721(uNFT).balanceOf(address(alice)), 0);
         assertEq(IERC721(uNFT).balanceOf(address(uNFT)), 0);
     }
-
 }

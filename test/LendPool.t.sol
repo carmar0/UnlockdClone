@@ -20,8 +20,14 @@ contract LendPoolTest is Test {
 
     // WBTC contract address deployed on Mainnet
     address public wbtc = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
-    // LINK (ChainLink Token) contract address deployed on Mainnet
-    address public link = 0x514910771AF9Ca656af840dff83E8264EcF986CA;
+
+    // AAVE and 1INCH Mainnet addresses
+    address aave = 0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9;
+    address oneinch = 0x111111111117dC0aa78b770fA6A738034120C302;
+
+    // Chainlink AAVE/ETH and 1INCH/ETH data feeds
+    address aaveEth = 0x6Df09E975c830ECae5bd4eD9d90f3A95a4f88012;
+    address oneinchEth = 0x72AFAECF99C9d9C8215fF44C77B94B99C28741e8;
 
     // NFT collection address deployed on Mainnet: Bored Ape Yacht Club,
     // Azuki and BEANZ Official
@@ -49,9 +55,14 @@ contract LendPoolTest is Test {
         // deal 1000 WBTC to LendPool.sol (WBTC has 8 decimals)
         deal(wbtc, address(lendpool), 1000 * 1e8);
         assertEq(IERC20(wbtc).balanceOf(address(lendpool)), 1000 * 1e8);
-        // deal 1000 LINK to LendPool.sol (LINK has 18 decimals)
-        deal(link, address(lendpool), 1000 * 1e18);
-        assertEq(IERC20(link).balanceOf(address(lendpool)), 1000 * 1e18);
+
+        // deal 1000 AAVE to LendPool.sol (AAVE has 18 decimals)
+        deal(aave, address(lendpool), 1000 * 1e18);
+        assertEq(IERC20(aave).balanceOf(address(lendpool)), 1000 * 1e18);
+
+        // deal 1000 1INCH to LendPool.sol (1INCH has 18 decimals)
+        deal(oneinch, address(lendpool), 1000 * 1e18);
+        assertEq(IERC20(oneinch).balanceOf(address(lendpool)), 1000 * 1e18);
     }
 
     function testDeposit() public {
@@ -108,20 +119,34 @@ contract LendPoolTest is Test {
         assertEq(IERC20(address(utoken)).balanceOf(address(alice)), 0);
     }
 
-    function testGetNftPrice() public view {
+    function testGetNftPrice() public {
         // ask for Azuki NFT floor price
         uint256 price1 = lendpool.getNftPrice(azukiAgg);
+        assertGt(price1, 0);
         console.log(price1);
 
         // ask for Bored Ape Yacht CLub NFT floor price
         uint256 price2 = lendpool.getNftPrice(baycAgg);
+        assertGt(price2, 0);
         console.log(price2);
 
         // ask for BEANZ Official NFT floor price
         uint256 price3 = lendpool.getNftPrice(beanzAgg);
+        assertGt(price3, 0);
         console.log(price3);
     }
 
+    function testGetAssetPrice() public {
+        // ask for AAVE/ETH data feed
+        uint256 price4 = lendpool.getAssetPrice(aaveEth);
+        assertGt(price4, 0);
+        console.log(price4);
+
+        // ask for 1INCH/ETH data feed
+        uint256 price5 = lendpool.getAssetPrice(oneinchEth);
+        assertGt(price5, 0);
+        console.log(price5);
+    }
 
     function testBorrow() public {
         // Owner of the NFT Token Id 2150 from Bored Ape Yacht CLub
@@ -138,29 +163,42 @@ contract LendPoolTest is Test {
         IERC721(azukiNFT).safeTransferFrom(ownerToken8035, address(alice), 8035);
         assertEq(IERC721(azukiNFT).ownerOf(8035), address(alice));
 
-        // Alice asks for a 1 WBTC loan using the BAYC NFT as collateral. She
-        // must approve LendPool contract to move her NFT to Unft contract.
-        // She will receive the uNFT Token with id 1
         vm.startPrank(alice);
+        // Alice asks for 500 AAVE loan using the BAYC NFT as collateral. She
+        // must approve LendPool contract to move her NFT to Unft contract.
         IERC721(baycNFT).approve(address(lendpool), 2150);
-        lendpool.borrow(wbtc, 1 * 1e8, baycNFT, 2150);
-        assertEq(IERC20(wbtc).balanceOf(address(alice)), 1 * 1e8);
+        vm.expectRevert(bytes4(keccak256("BorrowAmountNotAllowed()")));
+        lendpool.borrow(aave, 500 * 1e18, baycNFT, 2150);
+
+        // Alice asks for 50 AAVE loan using the BAYC NFT as collateral. She
+        // She will receive the uNFT Token with id 1
+        lendpool.borrow(aave, 50 * 1e18, baycNFT, 2150);
+        assertEq(IERC20(aave).balanceOf(address(alice)), 50 * 1e18);
         assertEq(IERC721(baycNFT).ownerOf(2150), address(uNFT));
         assertEq(IERC721(uNFT).ownerOf(1), address(alice));
 
-        // Alice asks for a 0.1 WBTC loan using the Azuki NFT as collateral. She
-        // must approve LendPool contract to move her NFT to Unft contract. An error
-        // must revert due she has already asked for a WBTC loan.
+        // Alice tries to ask another AAVE loan using the Azuki NFT as collateral. 
+        // It must revert due she has already asked for a AAVE loan.
         IERC721(azukiNFT).approve(address(lendpool), 8035);
-        bytes4 selector = bytes4(keccak256("OnlyOneLoan()"));
-        vm.expectRevert(selector);
-        lendpool.borrow(wbtc, 0.1 * 1e8, azukiNFT, 8035);
+        vm.expectRevert(bytes4(keccak256("OnlyOneLoan()")));
+        lendpool.borrow(aave, 100 * 1e18, azukiNFT, 8035);
+        
+        // Alice tries to ask for LINK loan (this asset is not accepted)
+        // LINK Mainnet address = 0x514910771AF9Ca656af840dff83E8264EcF986CA
+        vm.expectRevert(bytes4(keccak256("AssetNotAllowed()")));
+        lendpool.borrow(0x514910771AF9Ca656af840dff83E8264EcF986CA, 200 * 1e18, azukiNFT, 8035);
 
+        // Alice tries to ask for 10000 1INCH loan 
+        vm.expectRevert(bytes4(keccak256("NotEnoughLiquidity()")));
+        lendpool.borrow(oneinch, 10000 * 1e18, azukiNFT, 8035);
+
+        /*
         // Alice asks for a 200 LINK loan using the Azuki NFT as collateral
         // She will receive the uNFT Token with id 2
         console.log(lendpool.getNftPrice(azukiAgg));
         lendpool.borrow(link, 200 * 1e18, azukiNFT, 8035);
         assertEq(IERC721(azukiNFT).ownerOf(8035), address(uNFT));
         assertEq(IERC721(uNFT).ownerOf(2), address(alice));
+        */
     }
 }
