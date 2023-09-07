@@ -19,6 +19,7 @@ contract LendPool {
     event Deposited();
     event Withdrawed();
     event Borrowed();
+    event Repaid();
 
     error NullAmount();
     error InvalidAddress();
@@ -27,6 +28,8 @@ contract LendPool {
     error OnlyOneLoan();
     error NftAssetNotAccepted();
     error BorrowAmountNotAllowed();
+    error NotEnoughLiquidity();
+    error NoLoan();
 
     address public immutable uToken;
     address public immutable uNFT;
@@ -70,8 +73,8 @@ contract LendPool {
 
     /**
      * @dev Allows users to deposit an 'amount' of tokens to earn an 
-     *     interest. Users will receive the same amount of ERC20 uTokens 
-     *     as the receipt of their deposit.
+        interest. Users will receive the same amount of ERC20 uTokens 
+        as the receipt of their deposit.
      * @param asset Address of the asset to be deposited
      * @param amount Amount of tokens to deposit
      * @param onBehalfOf Address who will receive the tokens
@@ -99,8 +102,8 @@ contract LendPool {
      * @param asset Address of the asset to be withdrawed
      * @param amount Amount of tokens to withdraw
      * @param to Address who will receive the amount of tokens and the
-        * interest generated 
-     **/
+        interest generated 
+    **/
     function withdraw(address asset, uint256 amount, address to) public {
         if (amount == 0) revert NullAmount();
         if (to == address(0)) revert InvalidAddress();
@@ -139,13 +142,14 @@ contract LendPool {
 
     /**
      * @dev Allows users to borrow an 'amount' of tokens using a NFT
-     *     as the loan collateral.
+        as the loan collateral. Users will receive a uNFT token as
+        the receipt of their loan.
      * @param asset The address of the asset to borrow
      * @param amount The amount to be borrowed
      * @param nftAsset Address of the NFT collection
      * @param nftTokenId NFT id used as loan collateral
      *
-     */
+    **/
     function borrow(address asset, uint256 amount, address nftAsset, uint256 nftTokenId)
         public
         onlyNftOwner(nftAsset, nftTokenId)
@@ -170,12 +174,12 @@ contract LendPool {
         
         uint256 price = getNftPrice(aggregator);
 
-        // User can borrow maximum the half of his NFT value
+        // User can borrow maximum 50% of his NFT value
         uint256 maxBorrowAmount = price / 2; 
         if (amount > maxBorrowAmount) revert BorrowAmountNotAllowed();
 
         // If this contract has not enough money to be borrowed
-        if (amount > IERC20(asset).balanceOf(address(this))) revert NotEnoughBalance();
+        if (amount > IERC20(asset).balanceOf(address(this))) revert NotEnoughLiquidity();
 
         // transfer the NFT to Unft.sol (User must approve this contract
         // to move his NFT)
@@ -198,13 +202,43 @@ contract LendPool {
 
     /**
      * @dev Allows to get an estimation of the NFT price that is used as loan collateral by the
-     *     user
+        user.
      * @param nftAddress The Chainlink's aggregator contract address for the NFT collection
-     *     whose floor price is returned
-     *
-     */
+        whose floor price is returned
+    **/
     function getNftPrice(address nftAddress) public view returns (uint256) {
         (, int256 answer,,,) = AggregatorV3Interface(nftAddress).latestRoundData();
         return uint256(answer);
+    }
+
+    /**
+     * @dev Allows to repay a borrowed 'amount'. The 'nftTokenId' is returned 
+        to the user and the uNFT is burned.
+     * @param asset Address of the token asset to be repaid
+     * @param amount Amount to be repaid
+    **/
+    function repay(address asset, uint256 amount) public {
+        
+        Loan storage loan = loans[msg.sender][asset];
+
+        if (!loan.active) revert NoLoan();
+
+        // User must repay the whole loan
+        if (amount < loan.amount) revert NotEnoughBalance();
+
+        // Transfer the tokens to LendPool contract. Firstly user must approve
+        // this contract to move his funds
+        IERC20(asset).transferFrom(msg.sender, address(this), amount);
+
+        // Transfer the NFT from Unft contract to user wallet
+        IERC721(uNFT).safeTransferFrom(uNFT, msg.sender, loan.nftTokenId);
+
+        // Burn the user uNFT token
+        IUnft(uNFT).burn(loan.nftTokenId);
+
+        // Update loan status
+        loan.active = false;
+
+        emit Repaid();
     }
 }

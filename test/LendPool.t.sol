@@ -122,6 +122,7 @@ contract LendPoolTest is Test {
         console.log(price3);
     }
 
+
     function testBorrow() public {
         // Owner of the NFT Token Id 2150 from Bored Ape Yacht CLub
         address ownerToken2150 = IERC721(baycNFT).ownerOf(2150);
@@ -161,7 +162,5 @@ contract LendPoolTest is Test {
         lendpool.borrow(link, 200 * 1e18, azukiNFT, 8035);
         assertEq(IERC721(azukiNFT).ownerOf(8035), address(uNFT));
         assertEq(IERC721(uNFT).ownerOf(2), address(alice));
-        
-        
     }
 }
